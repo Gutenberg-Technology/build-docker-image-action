@@ -33,7 +33,7 @@ jobs:
 
 ### Build, test & push image
 
-Basic example: build, test and push the `gt/abn/keycloak/latest` tag to an ECR registry.
+Basic example: build, test and push the `my_image:latest` tag to an ECR registry.
 
 ```yaml
 jobs:
@@ -43,14 +43,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Gutenberg-Technology/build-docker-image-action@v1.0.0
         with:
-          build-cmd: "docker build --no-cache -t gt/abn/keycloak:latest ."
-          test-cmd: "container-structure-test test --image gt/abn/keycloak:latest --config container_structure_test.yaml"
+          build-cmd: "docker build --no-cache -t my_image:latest ."
+          test-cmd: "container-structure-test test --image my_image:latest --config container_structure_test.yaml"
           push-to-ecr: true
-          ecr-repo: "gt/abn/keycloak"
+          ecr-repo: "my_image"
           ecr-tags-to-push: "latest"
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: "us-east-1"
 ```
 
 Advanced usage: Set `env` vars, use several tags, including the commit SHA, and push it to the ECR registry.
@@ -61,7 +60,7 @@ jobs:
       name: Build, test & push image
       runs-on: ubuntu-latest
       env:
-        KEYCLOAK_REGISTRY: "gt/abn/keycloak-mef"
+        IMAGE_REGISTRY: "my_image"
 
       steps:
         - name: Checkout code
@@ -79,12 +78,11 @@ jobs:
           run: echo ${{ env.COMMIT_SHORT_SHA }}
 
         - uses: Gutenberg-Technology/build-docker-image-action@v1.0.0
-            build-cmd: "docker build --no-cache -t ${{ env.KEYCLOAK_REGISTRY }}:latest -t ${{ env.KEYCLOAK_REGISTRY }}:${{ env.COMMIT_SHORT_SHA }} ."
-            test-cmd: "container-structure-test test --image ${{ env.KEYCLOAK_REGISTRY }}:${{ env.COMMIT_SHORT_SHA }} --config container_structure_test.yaml"
+            build-cmd: "docker build --no-cache -t ${{ env.IMAGE_REGISTRY }}:latest -t ${{ env.IMAGE_REGISTRY }}:${{ env.COMMIT_SHORT_SHA }} ."
+            test-cmd: "container-structure-test test --image ${{ env.IMAGE_REGISTRY }}:${{ env.COMMIT_SHORT_SHA }} --config container_structure_test.yaml"
             push-to-ecr: true
-            ecr-repo: "${{ env.KEYCLOAK_REGISTRY }}"
+            ecr-repo: "${{ env.IMAGE_REGISTRY }}"
             ecr-tags-to-push: "latest,${{ env.COMMIT_SHORT_SHA }}"
             aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
             aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws-region: "us-east-1"
 ```
