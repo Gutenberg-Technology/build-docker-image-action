@@ -14,15 +14,14 @@ inputs:
     description: 'Push image to AWS ECR (or not)'
     required: false
     default: 'false'
-    ecr-repo:
-      description: 'ECR registry name, used for tagging and pushing'
-      required: false
-      type: string
-      default: ""
-    ecr-tags-to-push:
-      description: 'A comma-separated list of tags to push to ECR'
-      required: false
-      default: 'latest'
+  ecr-repo:
+    description: 'ECR registry name, used for tagging and pushing'
+    required: false
+    default: ""
+  ecr-tags-to-push:
+    description: 'A comma-separated list of tags to push to ECR'
+    required: false
+    default: 'latest'
   aws-access-key-id:
     description: "AWS access key ID"
     required: false
@@ -47,7 +46,7 @@ runs:
       shell: bash
 
     - name: 'Test image with container-structure-test'
-      if: inputs.test-cmd != ""
+      if: inputs.test-cmd != ''
       run: |
         curl -LO https://github.com/GoogleContainerTools/container-structure-test/releases/download/v1.17.0/container-structure-test-linux-amd64
         chmod +x container-structure-test-linux-amd64
@@ -78,7 +77,7 @@ runs:
         list_tags="${{ inputs.ecr-tags-to-push }}"
         for tag in $(echo $list_tags | sed "s/,/ /g")
         do
-          echo "tagging ${{ inputs.ecr-repo }}:$tag -> ${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr-repo }}"
+          echo "tagging ${{ inputs.ecr-repo }}:$tag -> ${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr-repo }}:$tag"
           docker tag ${{ inputs.ecr-repo }}:$tag ${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr-repo }}:$tag
         done
         docker images
