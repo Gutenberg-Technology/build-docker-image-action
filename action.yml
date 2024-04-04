@@ -1,0 +1,85 @@
+name: 'Build, test & push a Docker image'
+description: 'Build, test & push Docker image composite action'
+author: 'Gutenberg Technology'
+
+inputs:
+  build-cmd:
+    description: 'Docker command for building, with all options and tag(s) target(s)'
+    required: true
+  test-cmd:
+    description: 'container-structure-test command for test'
+    required: false
+    default: ""
+  push-to-ecr:
+    description: 'Push image to AWS ECR (or not)'
+    required: false
+    default: 'false'
+  ecr-repo:
+    description: 'ECR registry name, used for tagging and pushing'
+    required: false
+    default: ""
+  ecr-tags-to-push:
+    description: 'A comma-separated list of tags to push to ECR'
+    required: false
+    default: 'latest'
+  aws-access-key-id:
+    description: "AWS access key ID"
+    required: false
+  aws-secret-access-key:
+    description: "AWS secret access key"
+    required: false
+  aws-region:
+    description: "AWS region"
+    required: false
+    default: 'us-east-1'
+
+# outputs:
+#   pushed-image: 
+#     description: "Image name built (with its tags)"
+#     value: ${{ steps.push.outputs.pushed-image }} 
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Build image'
+      run: "${{ inputs.build-cmd }} && docker images"
+      shell: bash
+
+    - name: 'Test image with container-structure-test'
+      if: inputs.test-cmd != ''
+      run: |
+        curl -LO https://github.com/GoogleContainerTools/container-structure-test/releases/download/v1.17.0/container-structure-test-linux-amd64
+        chmod +x container-structure-test-linux-amd64
+        mkdir -p $HOME/bin
+        export PATH=$PATH:$HOME/bin
+        mv container-structure-test-linux-amd64 $HOME/bin/container-structure-test
+        ls -lha $HOME/bin
+        ${{ inputs.test-cmd }}
+      shell: bash
+
+    - name: Configure AWS credentials
+      if: inputs.push-to-ecr == 'true'
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Login to Amazon ECR
+      if: inputs.push-to-ecr == 'true'
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Push image to Amazon ECR
+      if: inputs.push-to-ecr == 'true'
+      id: push
+      run: |
+        list_tags="${{ inputs.ecr-tags-to-push }}"
+        for tag in $(echo $list_tags | sed "s/,/ /g")
+        do
+          echo "tagging ${{ inputs.ecr-repo }}:$tag -> ${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr-repo }}:$tag"
+          docker tag ${{ inputs.ecr-repo }}:$tag ${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr-repo }}:$tag
+        done
+        docker images
+        docker push --all-tags ${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr-repo }}
+      shell: bash
